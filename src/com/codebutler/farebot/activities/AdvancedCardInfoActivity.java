@@ -22,20 +22,23 @@
 
 package com.codebutler.farebot.activities;
 
-import android.app.ActionBar;
-import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.view.ViewPager;
 import android.text.ClipboardManager;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.actionbarsherlock.app.ActionBar;
+import com.actionbarsherlock.app.SherlockFragmentActivity;
+import com.actionbarsherlock.view.Menu;
+import com.actionbarsherlock.view.MenuItem;
 import com.codebutler.farebot.R;
 import com.codebutler.farebot.TabPagerAdapter;
+import com.codebutler.farebot.UnsupportedCardException;
 import com.codebutler.farebot.Utils;
 import com.codebutler.farebot.felica.FelicaCard;
 import com.codebutler.farebot.fragments.CardHWDetailFragment;
@@ -47,19 +50,27 @@ import com.codebutler.farebot.mifare.DesfireCard;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
-public class AdvancedCardInfoActivity extends Activity
+public class AdvancedCardInfoActivity extends SherlockFragmentActivity
 {
-    public static String EXTRA_CARD    = "com.codebutler.farebot.EXTRA_CARD";
-    public static String EXTRA_MESSAGE = "com.codebutler.farebot.EXTRA_MESSAGE";
+    public static String EXTRA_CARD  = "com.codebutler.farebot.EXTRA_CARD";
+    public static String EXTRA_ERROR = "com.codebutler.farebot.EXTRA_ERROR";
 
     private TabPagerAdapter mTabsAdapter;
     private Card mCard;
-    
+    private Exception mError;
+
     @Override
     protected void onCreate (Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_advanced_card_info);
+
+        findViewById(R.id.error_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                reportError();
+            }
+        });
         
         mCard = (Card) getIntent().getParcelableExtra(AdvancedCardInfoActivity.EXTRA_CARD);
         
@@ -69,7 +80,7 @@ public class AdvancedCardInfoActivity extends Activity
         Bundle args = new Bundle();
         args.putParcelable(AdvancedCardInfoActivity.EXTRA_CARD, mCard);
 
-        ActionBar actionBar = getActionBar();
+        ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setTitle(mCard.getCardType().toString() + " " + Utils.getHexString(mCard.getTagId(), "<error>"));
 
@@ -81,11 +92,14 @@ public class AdvancedCardInfoActivity extends Activity
 
         mTabsAdapter.addTab(actionBar.newTab().setText(R.string.hw_detail), CardHWDetailFragment.class, args);
 
-        if (getIntent().hasExtra(EXTRA_MESSAGE)) {
-            String message = getIntent().getStringExtra(EXTRA_MESSAGE);
-            ((TextView) findViewById(R.id.error_text_view)).setText(message);
-            findViewById(R.id.error_text_view).setVisibility(View.VISIBLE);
-//            findViewById(R.id.pager).setVisibility(View.GONE);
+        if (getIntent().hasExtra(EXTRA_ERROR)) {
+            mError = (Exception) getIntent().getSerializableExtra(EXTRA_ERROR);
+            if (mError instanceof UnsupportedCardException) {
+                findViewById(R.id.unknown_card).setVisibility(View.VISIBLE);
+            } else {
+                findViewById(R.id.error).setVisibility(View.VISIBLE);
+                ((TextView) findViewById(R.id.error_text)).setText(Utils.getErrorMessage(mError));
+            }
         }
 
         Class rawDataFragmentClass = null;
@@ -104,7 +118,7 @@ public class AdvancedCardInfoActivity extends Activity
     @Override
     public boolean onCreateOptionsMenu (Menu menu)
     {
-        getMenuInflater().inflate(R.menu.card_advanced_menu, menu);
+        getSupportMenuInflater().inflate(R.menu.card_advanced_menu, menu);
         return true;
     }
 
@@ -136,5 +150,50 @@ public class AdvancedCardInfoActivity extends Activity
                 .show();
         }
         return false;
+    }
+
+    private void reportError() {
+        DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                StringBuilder builder = new StringBuilder();
+                builder.append(Utils.getDeviceInfoString());
+                builder.append("\n\n");
+
+                builder.append(mError.toString());
+                builder.append("\n");
+                builder.append(Utils.getErrorMessage(mError));
+                builder.append("\n");
+                for (StackTraceElement elem : mError.getStackTrace()) {
+                    builder.append(elem.toString());
+                    builder.append("\n");
+                }
+
+                builder.append("\n\n");
+
+                try {
+                    builder.append(Utils.xmlNodeToString(mCard.toXML().getOwnerDocument()));
+                } catch (Exception ex) {
+                    builder.append("Failed to generate XML: ");
+                    builder.append(ex);
+                }
+
+                builder.append("\n\n");
+                builder.append(getString(R.string.comments));
+                builder.append(":\n\n");
+
+                Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:eric+farebot@codebutler.com"));
+                intent.putExtra(Intent.EXTRA_SUBJECT, "FareBot Bug Report");
+                intent.putExtra(Intent.EXTRA_TEXT, builder.toString());
+                startActivity(intent);
+
+            }
+        };
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.report_error_privacy_title)
+            .setMessage(R.string.report_error_privacy_message)
+            .setPositiveButton(android.R.string.ok, listener)
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
     }
 }

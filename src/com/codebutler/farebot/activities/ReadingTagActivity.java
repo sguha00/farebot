@@ -22,7 +22,6 @@
 
 package com.codebutler.farebot.activities;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.content.DialogInterface;
@@ -34,6 +33,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
+import com.actionbarsherlock.app.SherlockActivity;
 import com.codebutler.farebot.R;
 import com.codebutler.farebot.UnsupportedTagException;
 import com.codebutler.farebot.Utils;
@@ -41,7 +41,7 @@ import com.codebutler.farebot.mifare.Card;
 import com.codebutler.farebot.provider.CardProvider;
 import com.codebutler.farebot.provider.CardsTableColumns;
 
-public class ReadingTagActivity extends Activity
+public class ReadingTagActivity extends SherlockActivity
 {
     @Override
     public void onCreate (Bundle icicle)
@@ -60,8 +60,6 @@ public class ReadingTagActivity extends Activity
 
     private void resolveIntent (Intent intent)
     {
-        final TextView textView = (TextView) findViewById(R.id.textView);
-        
         try {
             final Tag tag      = (Tag) intent.getParcelableExtra("android.nfc.extra.TAG");
             final byte[] tagId = intent.getByteArrayExtra(NfcAdapter.EXTRA_ID);
@@ -123,11 +121,6 @@ public class ReadingTagActivity extends Activity
                     } catch (Exception ex) {
                         Utils.showErrorAndFinish(ReadingTagActivity.this, ex);
                     }
-                }
-
-                @Override
-                protected void onProgressUpdate(String... values) {
-                    textView.setText(values[0]);
                 }
                 
             }.execute();

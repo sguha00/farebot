@@ -25,13 +25,22 @@ package com.codebutler.farebot;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.util.Log;
+import android.view.WindowManager;
 import org.w3c.dom.Node;
 
-import javax.xml.transform.*;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Result;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.StringWriter;
+import java.util.List;
 
 public class Utils
 {
@@ -45,18 +54,22 @@ public class Utils
 
     public static void showErrorAndFinish (final Activity activity, Exception ex)
     {
-        Log.e(activity.getClass().getName(), Utils.getErrorMessage(ex));
-        ex.printStackTrace();
+        try {
+            Log.e(activity.getClass().getName(), Utils.getErrorMessage(ex));
+            ex.printStackTrace();
 
-        new AlertDialog.Builder(activity)
-            .setMessage(Utils.getErrorMessage(ex))
-            .setCancelable(false)
-            .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface arg0, int arg1) {
-                    activity.finish();
-                }
-            })
-            .show();
+            new AlertDialog.Builder(activity)
+                .setMessage(Utils.getErrorMessage(ex))
+                .setCancelable(false)
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface arg0, int arg1) {
+                        activity.finish();
+                    }
+                })
+                .show();
+        } catch (WindowManager.BadTokenException unused) {
+            /* Ignore... happens if the activity was destroyed */
+        }
     }
 
     public static String getHexString (byte[] b) throws Exception
@@ -173,5 +186,41 @@ public class Utils
         }
 
         return errorMessage;
+    }
+
+    public static String getDeviceInfoString() {
+        return String.format("Version: %s\nModel: %s (%s %s)\nOS: %s\n\n",
+            getVersionString(),
+            Build.MODEL,
+            Build.MANUFACTURER,
+            Build.BRAND,
+            Build.VERSION.RELEASE);
+    }
+
+    private static String getVersionString() {
+        PackageInfo info = getPackageInfo();
+        return String.format("%s (Build %s)", info.versionName, info.versionCode);
+    }
+
+    private static PackageInfo getPackageInfo() {
+        try {
+            FareBotApplication app = FareBotApplication.getInstance();
+            return app.getPackageManager().getPackageInfo(app.getPackageName(), 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T findInList(List<T> list, Matcher matcher) {
+        for (T item : list) {
+            if (matcher.matches(item)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    public static interface Matcher<T> {
+        public boolean matches(T t);
     }
 }

@@ -22,8 +22,6 @@
 
 package com.codebutler.farebot.activities;
 
-import android.app.ActionBar;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -35,11 +33,14 @@ import android.speech.tts.TextToSpeech;
 import android.speech.tts.TextToSpeech.OnInitListener;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
+import com.actionbarsherlock.app.ActionBar;
+import com.actionbarsherlock.app.SherlockFragmentActivity;
+import com.actionbarsherlock.view.Menu;
+import com.actionbarsherlock.view.MenuItem;
 import com.codebutler.farebot.R;
 import com.codebutler.farebot.TabPagerAdapter;
+import com.codebutler.farebot.UnsupportedCardException;
 import com.codebutler.farebot.Utils;
 import com.codebutler.farebot.fragments.CardBalanceFragment;
 import com.codebutler.farebot.fragments.CardRefillsFragment;
@@ -49,7 +50,7 @@ import com.codebutler.farebot.provider.CardsTableColumns;
 import com.codebutler.farebot.transit.SuicaTransitData;
 import com.codebutler.farebot.transit.TransitData;
 
-public class CardInfoActivity extends Activity {
+public class CardInfoActivity extends SherlockFragmentActivity {
     public static final String EXTRA_TRANSIT_DATA = "transit_data";
     public static final String SPEAK_BALANCE_EXTRA = "com.codebutler.farebot.speak_balance";
 
@@ -76,7 +77,7 @@ public class CardInfoActivity extends Activity {
         final ViewPager viewPager = (ViewPager) findViewById(R.id.pager);
         mTabsAdapter = new TabPagerAdapter(this, viewPager);
 
-        final ActionBar actionBar = getActionBar();
+        final ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setTitle(R.string.loading);
         
@@ -115,14 +116,14 @@ public class CardInfoActivity extends Activity {
                         Utils.showErrorAndFinish(CardInfoActivity.this, mException);
                     } else {
                         Log.e("CardInfoActivity", "Error parsing transit data", mException);
-                        showAdvancedInfo(Utils.getErrorMessage(mException));
+                        showAdvancedInfo(mException);
                         finish();
                     }
                     return;
                 }
 
                 if (mTransitData == null) {
-                    showAdvancedInfo("Unsupported card data.");
+                    showAdvancedInfo(new UnsupportedCardException());
                     finish();
                     return;
                 }
@@ -168,14 +169,14 @@ public class CardInfoActivity extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu (Menu menu) {
-        getMenuInflater().inflate(R.menu.card_info_menu, menu);
+        getSupportMenuInflater().inflate(R.menu.card_info_menu, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected (MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            Intent intent = new Intent(this, MainActivity.class);
+            Intent intent = new Intent(this, CardsActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             startActivity(intent);
             return true;
@@ -186,11 +187,12 @@ public class CardInfoActivity extends Activity {
         return false;
     }
 
-    private void showAdvancedInfo (String message) {
+    private void showAdvancedInfo (Exception ex) {
         Intent intent = new Intent(this, AdvancedCardInfoActivity.class);
         intent.putExtra(AdvancedCardInfoActivity.EXTRA_CARD, mCard);
-        if (message != null)
-            intent.putExtra(AdvancedCardInfoActivity.EXTRA_MESSAGE, message);
+        if (ex != null) {
+            intent.putExtra(AdvancedCardInfoActivity.EXTRA_ERROR, ex);
+        }
         startActivity(intent);
     }
 }

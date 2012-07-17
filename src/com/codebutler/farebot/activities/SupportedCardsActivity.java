@@ -22,28 +22,28 @@
 
 package com.codebutler.farebot.activities;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Html;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Gallery;
 import android.widget.ImageView;
 import android.widget.TextView;
+import com.actionbarsherlock.app.SherlockActivity;
+import com.actionbarsherlock.view.MenuItem;
 import com.codebutler.farebot.R;
 
 import java.util.ArrayList;
 
-public class SupportedCardsActivity extends Activity {
+public class SupportedCardsActivity extends SherlockActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_supported_cards);
 
-        getActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         
         ((Gallery) findViewById(R.id.gallery)).setAdapter(new CardsAdapter(this));
     }
@@ -62,12 +62,12 @@ public class SupportedCardsActivity extends Activity {
     private class CardsAdapter extends ArrayAdapter<CardInfo> {
         public CardsAdapter(Context context) {
             super(context, 0, new ArrayList<CardInfo>());
-            add(new CardInfo(R.drawable.orca_card,    "ORCA",    "Seattle, WA"));
-            add(new CardInfo(R.drawable.clipper_card, "Clipper", "San Francisco, CA"));
-            add(new CardInfo(R.drawable.ezlink_card,  "EZ-Link", "Singapore"));
-            add(new CardInfo(R.drawable.suica_card,   "Suica",   "Tokyo, Japan"));
-            add(new CardInfo(R.drawable.pasmo_card,   "PASMO",   "Tokyo, Japan"));
-            add(new CardInfo(R.drawable.icoca_card,   "ICOCA",   "Kansai, Japan"));
+            add(new CardInfo(R.drawable.orca_card,    "ORCA",    context.getString(R.string.location_seattle)));
+            add(new CardInfo(R.drawable.clipper_card, "Clipper", context.getString(R.string.location_san_francisco)));
+            add(new CardInfo(R.drawable.ezlink_card,  "EZ-Link", context.getString(R.string.location_singapore)));
+            add(new CardInfo(R.drawable.suica_card,   "Suica",   context.getString(R.string.location_tokyo)));
+            add(new CardInfo(R.drawable.pasmo_card,   "PASMO",   context.getString(R.string.location_tokyo)));
+            add(new CardInfo(R.drawable.icoca_card,   "ICOCA",   context.getString(R.string.location_kansai)));
         }
         
         @Override
